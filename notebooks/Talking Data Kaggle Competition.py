@@ -17,13 +17,17 @@ def get_data(filename):
 def write_data(df,filename):
   path = '/mnt/results/'
   df.repartition(1).write.csv(path + filename)
+  
+def get_training_data(filename):
+  df = get_data(filename)
+  df = df.select(col("ip"),col("app"),col("device"),col("os"),col("channel"),col("click_time"),col("attributed_time"),col("is_attributed").alias("label"))
+  return df
 
 # COMMAND ----------
 
 from pyspark.sql.functions import *
 
-t0_df = get_data('train_sample.csv')
-t0_df = t0_df.select(col("ip"),col("app"),col("device"),col("os"),col("channel"),col("click_time"),col("attributed_time"),col("is_attributed").alias("label"))
+t0_df = get_training_data('train_sample.csv')
 t0_df.printSchema()
 
 # COMMAND ----------
@@ -188,5 +192,14 @@ if enabled[3]:
 
 # COMMAND ----------
 
-#real_test_df = spark.read.csv("sample-data/test.csv",header=True,inferSchema=True)
-#real_test_df.printSchema()
+real_train_df = get_training_data('train.csv')
+real_train_df.printSchema()
+
+# COMMAND ----------
+
+lr = LogisticRegression(maxIter=10,labelCol="label",featuresCol="features")
+lr_model = lr.fit(real_train_df)
+
+# COMMAND ----------
+
+real_test_df = get_data('test.csv')
